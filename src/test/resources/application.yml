@@ -1,0 +1,11 @@
+spring:
+  profiles:
+    active: test
+  cloud:
+    stream:
+      bindings:
+        createUser:
+          destination: user-create-queue
+logging:
+  level:
+    com.smogian: DEBUG

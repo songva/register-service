@@ -1,0 +1,15 @@
+spring:
+  profiles:
+    active: stage
+  cloud:
+    stream:
+      bindings:
+        createUser:
+          destination: ${USER-CREATE-QUEUE}
+
+logging:
+  level:
+    org.springframework: INFO
+    com.smogian: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"
