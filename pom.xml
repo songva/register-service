@@ -18,7 +18,7 @@
     <java.version>17</java.version>
     <snakeyml.version>2.2</snakeyml.version>
     <spring-cloud-stream-binder-sqs.version>3.0.0</spring-cloud-stream-binder-sqs.version>
-    <openapi.version>2.2.0</openapi.version>
+    <netty.versio>4.1.94.Final</netty.versio>
     <start-class>com.smogian.user.registration.RegistrationApplication</start-class>
   </properties>
 
@@ -39,13 +39,22 @@
       <groupId>de.idealo.spring</groupId>
       <artifactId>spring-cloud-stream-binder-sqs</artifactId>
       <version>${spring-cloud-stream-binder-sqs.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-handler</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
-
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-handler</artifactId>
+      <version>${netty.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.hibernate.validator</groupId>
       <artifactId>hibernate-validator</artifactId>
     </dependency>
-
     <dependency>
       <groupId>com.amazonaws</groupId>
       <artifactId>aws-lambda-java-events</artifactId>
@@ -56,11 +65,6 @@
       <artifactId>aws-lambda-java-core</artifactId>
       <version>1.1.0</version>
       <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-test</artifactId>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
