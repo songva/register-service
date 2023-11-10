@@ -39,6 +39,7 @@ import static org.mockito.Mockito.when;
 class UserRegisterControllerIntegrationTest {
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final ArgumentCaptor<Message<String>> messageCaptor = ArgumentCaptor.forClass(Message.class);
+  private final Random random = new Random();
 
   @Autowired
   private UserRegisterValidator userRegisterValidator;
@@ -80,7 +81,7 @@ class UserRegisterControllerIntegrationTest {
     void givenValidUser_whenRegisterTheUser_shouldProceedTheHappyPath() {
       // given
       userRegisterController = new UserRegisterController(streamBridge, userRegisterValidator);
-      val firstName = "Nathan".concat(String.valueOf(new Random().nextInt(100)));
+      val firstName = "Nathan".concat(String.valueOf(random.nextInt(100)));
       val nathan = User.builder()
               .firstName(firstName)
               .lastName("Rich")
@@ -142,7 +143,7 @@ class UserRegisterControllerIntegrationTest {
     @SneakyThrows
     void givenQueueIsNotSpecified_whenRegisterTheUser_shouldReturnErrors() {
       // given
-      val firstName = "Nathan".concat(String.valueOf(new Random().nextInt(100)));
+      val firstName = "Nathan".concat(String.valueOf(random.nextInt(100)));
       val nathan = User.builder()
               .firstName(firstName)
               .lastName("Rich")
