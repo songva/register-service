@@ -1,0 +1,9 @@
+spring:
+  cloud:
+    stream:
+      bindings:
+        createUser:
+          destination: unknown-queue
+logging:
+  level:
+    com.smogian: DEBUG
