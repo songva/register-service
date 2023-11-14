@@ -4,12 +4,26 @@ spring:
   cloud:
     stream:
       bindings:
-        createUser:
-          destination: ${USER-CREATE-QUEUE}
+        register-in-0:
+          consumer:
+            auto-startup: false
+        userRegister:
+          destination: ${USER_REGISTER_QUEUE}
+    function:
+      definition: register
 
 logging:
   level:
-    org.springframework: INFO
-    com.smogian: INFO
+    org:
+      springframework: INFO
+      cloud:
+        function:
+          adapter:
+            aws: ERROR
+    com:
+      smogian: DEBUG
+    software:
+      amazon: INFO
+
   pattern:
     console: "%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"

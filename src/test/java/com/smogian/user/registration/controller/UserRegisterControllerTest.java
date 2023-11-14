@@ -1,6 +1,5 @@
 package com.smogian.user.registration.controller;
 
-import com.google.common.collect.ImmutableList;
 import com.smogian.user.registration.domain.User;
 import jakarta.validation.ValidationException;
 import lombok.val;
@@ -15,13 +14,13 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cloud.stream.function.StreamBridge;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.MessageHandlingException;
 import org.springframework.messaging.support.GenericMessage;
 import org.springframework.messaging.support.MessageBuilder;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-
-import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -67,7 +66,10 @@ class UserRegisterControllerTest {
 
     // then
     StepVerifier.create(source)
-            .expectNext(ImmutableList.of("validation error"))
+            .expectNext(
+                    ResponseEntity
+                            .badRequest()
+                            .body("validation error"))
             .verifyComplete();
   }
 
@@ -83,7 +85,10 @@ class UserRegisterControllerTest {
 
     // then
     StepVerifier.create(source)
-            .expectNext(ImmutableList.of("failed to send message"))
+            .expectNext(
+                    ResponseEntity
+                            .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body("failed to send message"))
             .verifyComplete();
   }
 
@@ -100,7 +105,10 @@ class UserRegisterControllerTest {
 
     // then
     StepVerifier.create(source)
-            .expectNext(ImmutableList.of("unknown queue configured"))
+            .expectNext(
+                    ResponseEntity
+                            .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body("unknown queue configured"))
             .verifyComplete();
   }
 
@@ -115,8 +123,9 @@ class UserRegisterControllerTest {
     val source = userRegisterController.register().apply(Mono.just(user));
 
     // then
+
     StepVerifier.create(source)
-            .expectNext(Collections.emptyList())
+            .expectNext(ResponseEntity.ok().build())
             .verifyComplete();
   }
 }

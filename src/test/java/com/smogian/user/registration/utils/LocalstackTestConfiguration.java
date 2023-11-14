@@ -1,4 +1,4 @@
-package com.smogian.user.registration.config;
+package com.smogian.user.registration.utils;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Profile;
@@ -9,7 +9,7 @@ import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 
 import java.net.URI;
 
-public class AwsTestConfiguration {
+public class LocalstackTestConfiguration {
 
   @Profile({"test", "invalidQueue"})
   @Bean
