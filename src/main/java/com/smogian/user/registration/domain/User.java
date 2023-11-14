@@ -14,7 +14,6 @@ import lombok.Value;
 import lombok.extern.jackson.Jacksonized;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Optional;
 
 //TODO Move this class to shared model lib
 

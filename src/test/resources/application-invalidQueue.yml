@@ -2,8 +2,8 @@ spring:
   cloud:
     stream:
       bindings:
-        createUser:
-          destination: unknown-queue
-logging:
-  level:
-    com.smogian: DEBUG
+        register-in-0:
+          consumer:
+            auto-startup: false
+        userRegister:
+          destination: https://localhost.localstack.cloud:4566/000000000000/unknown-queue

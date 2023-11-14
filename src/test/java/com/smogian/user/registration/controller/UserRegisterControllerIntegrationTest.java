@@ -1,8 +1,8 @@
 package com.smogian.user.registration.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.smogian.user.registration.config.AwsTestConfiguration;
 import com.smogian.user.registration.domain.User;
+import com.smogian.user.registration.utils.LocalstackTestConfiguration;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,10 +12,12 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.Message;
 import org.springframework.test.context.ActiveProfiles;
 import reactor.core.publisher.Mono;
@@ -34,7 +36,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @Tag("integration")
-@Import(AwsTestConfiguration.class)
+@Import(LocalstackTestConfiguration.class)
 @SpringBootTest
 class UserRegisterControllerIntegrationTest {
   private final ObjectMapper objectMapper = new ObjectMapper();
@@ -49,11 +51,36 @@ class UserRegisterControllerIntegrationTest {
   @Nested
   @ActiveProfiles(profiles = "test")
   class ValidQueueProfile {
+    @Value("${spring.cloud.stream.bindings.userRegister.destination}")
+    private String userRegisterQueue;
+    @Autowired
+    private SqsAsyncClient sqsAsyncClient;
     @SpyBean
     private StreamBridge streamBridge;
 
-    @Autowired
-    private SqsAsyncClient sqsAsyncClient;
+    @Test
+    @SneakyThrows
+    void givenInvalidUser_whenTryToSendRegisterMessage_shouldReturnErrorMessage() {
+      // given
+      val mockedStreamBridge = Mockito.mock(StreamBridge.class);
+      userRegisterController = new UserRegisterController(mockedStreamBridge, userRegisterValidator);
+      val nathan = User.builder().build();
+      when(mockedStreamBridge.send(eq("userRegister"), any(Message.class))).thenReturn(false);
+
+      // when
+      val result = userRegisterController.register().apply(Mono.just(nathan)).block();
+
+      // then
+      assertThat(result)
+              .extracting(ResponseEntity::getStatusCodeValue)
+              .isEqualTo(400);
+      assertThat(result.getBody().split("; "))
+              .containsExactlyInAnyOrder(
+                      "lastName must not be empty",
+                      "firstName must not be empty",
+                      "email must not be empty",
+                      "password must not be empty");
+    }
 
     @Test
     @SneakyThrows
@@ -67,13 +94,20 @@ class UserRegisterControllerIntegrationTest {
               .email("nathan.rich@smogian.com")
               .password("nGli7y{AW-MC")
               .build();
-      when(mockedStreamBridge.send(eq("createUser"), any(Message.class))).thenReturn(false);
+      when(mockedStreamBridge.send(eq("userRegister"), any(Message.class))).thenReturn(false);
 
       // when
       val result = userRegisterController.register().apply(Mono.just(nathan)).block();
 
       // then
-      assertThat(result).containsExactly("failed to send message");
+      assertThat(result)
+              .extracting(
+                      ResponseEntity::getBody,
+                      ResponseEntity::getStatusCodeValue)
+              .containsExactly(
+                      "failed to send message",
+                      500
+              );
     }
 
     @Test
@@ -90,12 +124,12 @@ class UserRegisterControllerIntegrationTest {
               .build();
 
       // when
-      sqsAsyncClient.purgeQueue(PurgeQueueRequest.builder().queueUrl("user-create-queue").build()).get();
+      sqsAsyncClient.purgeQueue(PurgeQueueRequest.builder().queueUrl(userRegisterQueue).build()).get();
       val result = userRegisterController.register().apply(Mono.just(nathan)).block();
       val message = objectMapper.readValue(
               sqsAsyncClient.receiveMessage(
                               ReceiveMessageRequest.builder()
-                                      .queueUrl("user-create-queue")
+                                      .queueUrl(userRegisterQueue)
                                       .maxNumberOfMessages(1)
                                       .build()).get()
                       .messages().stream().findFirst().get().body(),
@@ -103,7 +137,7 @@ class UserRegisterControllerIntegrationTest {
 
       // then
       assertSoftly(softly -> {
-        softly.assertThatCode(() -> verify(streamBridge, times(1)).send(eq("createUser"), messageCaptor.capture()))
+        softly.assertThatCode(() -> verify(streamBridge, times(1)).send(eq("userRegister"), messageCaptor.capture()))
                 .doesNotThrowAnyException();
         softly.assertThat(messageCaptor.getValue())
                 .extracting(Message::getPayload)
@@ -121,7 +155,14 @@ class UserRegisterControllerIntegrationTest {
                         "nathan.rich@smogian.com",
                         "88b6fc3982b072a2ca2b07dce170d13ab402db91630a7c31433c7bb3fe4b0078"
                 );
-        softly.assertThat(result).isEmpty();
+        softly.assertThat(result)
+                .extracting(
+                        ResponseEntity::getBody,
+                        ResponseEntity::getStatusCodeValue)
+                .containsExactly(
+                        null,
+                        200
+                );
       });
     }
   }
@@ -156,16 +197,19 @@ class UserRegisterControllerIntegrationTest {
 
       // then
       assertSoftly(softly -> {
-        softly.assertThatCode(() -> verify(streamBridge, times(1)).send(eq("createUser"), messageCaptor.capture()))
+        softly.assertThatCode(() -> verify(streamBridge, times(1)).send(eq("userRegister"), messageCaptor.capture()))
                 .doesNotThrowAnyException();
         softly.assertThat(messageCaptor.getValue())
                 .extracting(Message::getPayload)
                 .isEqualTo(nathan);
 
         softly.assertThat(result)
-                .first()
+                .extracting(ResponseEntity::getBody)
                 .asString()
                 .startsWith("The specified queue does not exist for this wsdl version.");
+        softly.assertThat(result)
+                .extracting(ResponseEntity::getStatusCodeValue)
+                .isEqualTo(500);
       });
     }
   }
